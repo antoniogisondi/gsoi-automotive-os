@@ -1,0 +1,7 @@
+GSOI Automotive OS
+Yocto release: 6.0 / Wrynose
+
+bitbake: 33581c84f3a85008239acbd940501a35de48dc91
+openembedded-core: 42fa856a00ac16b2a7a83d7ecfa60a5be192b16c
+meta-yocto: 904846ae078ee20de073040ebb77c86e19250f56
+meta-raspberrypi: f62c67921474370829d24a4fa01ef88543f3906b

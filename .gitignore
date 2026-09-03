@@ -1,0 +1,22 @@
+# Yocto build output
+build/
+downloads/
+sstate-cache/
+tmp/
+cache/
+
+# Third-party Yocto layers
+layers/bitbake/
+layers/openembedded-core/
+layers/meta-yocto/
+layers/meta-raspberrypi/
+layers/meta-openembedded/
+
+# Logs
+*.log
+*.lock
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
