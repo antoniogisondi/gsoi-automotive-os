@@ -31,9 +31,9 @@ LAYERS_DIR="$REPO_ROOT/layers"
 BUILD_DIR="$REPO_ROOT/build"
 UPSTREAM_FILE="$REPO_ROOT/UPSTREAM_VERSIONS.txt"
 
-# Branch upstream corrispondente alla release Yocto scelta (Wrynose).
-# I commit precisi vengono comunque forzati da UPSTREAM_VERSIONS.txt.
-BRANCH="wrynose"
+# Nota: NON si clona per nome di branch. I repo upstream non espongono
+# tutti lo stesso nome di branch e comunque servono commit precisi: si
+# clona il repo e si fa checkout del commit pinnato in UPSTREAM_VERSIONS.txt.
 
 # --- Layer upstream: nome -> URL -------------------------------------------
 # Layout "standalone" (OE-Core) come previsto dal .gitignore della repo.
@@ -74,15 +74,17 @@ clone_or_update() {
 
     local dir="$LAYERS_DIR/$name"
 
-    if [ ! -d "$dir/.git" ]; then
-        log "Clono $name ($url) branch $BRANCH"
-        git clone -b "$BRANCH" "$url" "$dir"
-    else
+    if [ -d "$dir/.git" ]; then
         log "Aggiorno $name (gia' presente)"
+        git -C "$dir" fetch --tags origin
+    else
+        # Rimuove eventuali cloni parziali lasciati da un tentativo fallito.
+        rm -rf "$dir"
+        log "Clono $name ($url)"
+        git clone "$url" "$dir"
     fi
 
-    # Assicura che il commit pinnato sia disponibile e lo forza.
-    git -C "$dir" fetch --tags origin "$BRANCH"
+    # Forza il commit pinnato (HEAD staccato: va bene per un layer di build).
     log "Checkout $name -> $commit"
     git -C "$dir" checkout --quiet "$commit"
 }
