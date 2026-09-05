@@ -28,12 +28,13 @@ inherit python_setuptools_build_meta systemd
 # --- Dipendenze runtime -----------------------------------------------------
 # La v0.1 usa solo la libreria standard Python. Moduli usati: socket, urllib,
 # argparse, unicodedata, dataclasses, enum, abc, random, time.
+# argparse e unicodedata sono in python3-core in questa release (non piu'
+# pacchetti separati). urllib e' in python3-netclient.
 # NOTA: se al primo boot un "import" fallisse, aggiungere qui il python3-*
-# mancante (lo split di python3 in OE-Core e' a grana fine).
+# che fornisce quel modulo (lo split di python3 in OE-Core e' a grana fine).
 RDEPENDS:${PN} += " \
     python3-core \
     python3-netclient \
-    python3-argparse \
 "
 
 # --- Servizio systemd -------------------------------------------------------
