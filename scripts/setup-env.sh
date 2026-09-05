@@ -43,6 +43,8 @@ declare -A REPOS=(
     [openembedded-core]="https://git.openembedded.org/openembedded-core"
     [meta-yocto]="https://git.yoctoproject.org/meta-yocto"
     [meta-raspberrypi]="https://git.yoctoproject.org/meta-raspberrypi"
+    [meta-openembedded]="https://git.openembedded.org/meta-openembedded"
+    [meta-qt6]="https://code.qt.io/yocto/meta-qt6.git"
 )
 
 # --- Funzioni ---------------------------------------------------------------
@@ -112,7 +114,8 @@ echo "Repo root : $REPO_ROOT"
 echo "Layers    : $LAYERS_DIR"
 echo "Build dir : $BUILD_DIR"
 
-for name in bitbake openembedded-core meta-yocto meta-raspberrypi; do
+for name in bitbake openembedded-core meta-yocto meta-raspberrypi \
+            meta-openembedded meta-qt6; do
     clone_or_update "$name"
 done
 
@@ -136,9 +139,11 @@ BBLAYERS ?= " \
     ${TOPDIR}/../layers/openembedded-core/meta \
     ${TOPDIR}/../layers/meta-yocto/meta-poky \
     ${TOPDIR}/../layers/meta-raspberrypi \
+    ${TOPDIR}/../layers/meta-openembedded/meta-oe \
+    ${TOPDIR}/../layers/meta-openembedded/meta-python \
+    ${TOPDIR}/../layers/meta-qt6 \
     ${TOPDIR}/../layers/meta-gsoi \
 "
-# In futuro (audio/qt/extra): aggiungere meta-openembedded qui.
 EOF
 else
     echo "build/conf/bblayers.conf gia' presente, non lo tocco."
@@ -153,6 +158,9 @@ CONF_VERSION = "2"
 # Target hardware e distro del progetto.
 MACHINE ??= "raspberrypi5"
 DISTRO ?= "gsoi-automotive"
+
+# Grafica: OpenGL/GLES + Wayland (per Weston e il cockpit Qt/QML).
+DISTRO_FEATURES:append = " opengl wayland"
 
 # Abilita la seriale UART (utile per debug boot su RPi5).
 ENABLE_UART = "1"
