@@ -9,6 +9,11 @@ IMAGE_INSTALL:append = " \
     bash \
     python3 \
     jarvis-mini \
+    weston \
+    weston-init \
+    gsoi-cockpit \
+    qtwayland \
+    ttf-dejavu-sans \
 "
 
 IMAGE_FEATURES += "ssh-server-openssh"
