@@ -157,6 +157,11 @@ DISTRO ?= "gsoi-automotive"
 # Abilita la seriale UART (utile per debug boot su RPi5).
 ENABLE_UART = "1"
 
+# Accetta il license flag del firmware WiFi/BT del Raspberry
+# (chip Synaptics/Cypress), altrimenti packagegroup-base-extended
+# non e' costruibile e la build si ferma.
+LICENSE_FLAGS_ACCEPTED = "synaptics-killswitch"
+
 PACKAGE_CLASSES ?= "package_rpm"
 
 # Directory condivise a livello di repo (escluse da git, riutilizzabili
