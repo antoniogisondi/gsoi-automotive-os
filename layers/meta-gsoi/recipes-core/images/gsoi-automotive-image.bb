@@ -8,6 +8,7 @@ inherit core-image
 IMAGE_INSTALL:append = " \
     bash \
     python3 \
+    jarvis-mini \
 "
 
 IMAGE_FEATURES += "ssh-server-openssh"
