@@ -160,7 +160,8 @@ MACHINE ??= "raspberrypi5"
 DISTRO ?= "gsoi-automotive"
 
 # Grafica: OpenGL/GLES + Wayland (per Weston e il cockpit Qt/QML).
-DISTRO_FEATURES:append = " opengl wayland"
+# 'pam' e' richiesto da Weston.
+DISTRO_FEATURES:append = " opengl wayland pam"
 
 # Abilita la seriale UART (utile per debug boot su RPi5).
 ENABLE_UART = "1"
