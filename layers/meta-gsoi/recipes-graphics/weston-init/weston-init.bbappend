@@ -1,6 +1,9 @@
 # GSOI: configura Weston in modalita' "kiosk" e avvia il cockpit a schermo
 # intero come client Wayland al boot.
 
+# Spedisci il link di autostart aggiunto in do_install (altrimenti QA fallisce).
+FILES:${PN} += "${systemd_system_unitdir}/multi-user.target.wants"
+
 do_install:append() {
     install -d ${D}${sysconfdir}/xdg/weston
     cat > ${D}${sysconfdir}/xdg/weston/weston.ini <<'EOF'
