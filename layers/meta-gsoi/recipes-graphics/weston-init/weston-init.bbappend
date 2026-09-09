@@ -17,4 +17,10 @@ xwayland=false
 path=/usr/bin/gsoi-cockpit-launch
 watch=true
 EOF
+
+    # Forza l'avvio di Weston al boot (kiosk): di default weston.service e'
+    # solo socket-activated, quindi senza questo link non parte da solo.
+    install -d ${D}${systemd_system_unitdir}/multi-user.target.wants
+    ln -sf ../weston.service \
+        ${D}${systemd_system_unitdir}/multi-user.target.wants/weston.service
 }
