@@ -14,6 +14,7 @@ IMAGE_INSTALL:append = " \
     gsoi-cockpit \
     qtwayland \
     ttf-dejavu-sans \
+    source-serif-4 \
 "
 
 IMAGE_FEATURES += "ssh-server-openssh"
