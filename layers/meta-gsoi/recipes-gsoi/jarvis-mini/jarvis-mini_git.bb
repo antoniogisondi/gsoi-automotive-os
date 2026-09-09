@@ -17,7 +17,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 SRC_URI = "git://github.com/antoniogisondi/gsoi-jarvis-mini.git;protocol=https;branch=${GSOI_JARVIS_MINI_BRANCH}"
 
 GSOI_JARVIS_MINI_BRANCH ?= "claude/jarvis-mini-v0.1"
-SRCREV = "83f39adcd1a60e8750b162ffdc242ae7abdb075f"
+SRCREV = "3d6f2ecdae0949816f313e4d8f4965485ceb6668"
 
 PV = "0.1.0+git"
 # Nota: non impostare S = "${WORKDIR}/git": in questa release di OE-Core
