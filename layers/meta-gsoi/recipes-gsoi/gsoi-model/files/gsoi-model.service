@@ -1,0 +1,22 @@
+[Unit]
+Description=GSOI Model — server LLM locale (cervello a bordo)
+Documentation=https://github.com/antoniogisondi/gsoi-jarvis-mini
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gsoi-model-serve
+# Se il modello non e' ancora installato il launcher esce: si riprova con
+# calma (non deve intasare il journal finche' manca il .gguf).
+Restart=on-failure
+RestartSec=300
+
+# Confinamento: il modello serve solo testo, non deve toccare nient'altro.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/gsoi-model
+
+[Install]
+WantedBy=multi-user.target

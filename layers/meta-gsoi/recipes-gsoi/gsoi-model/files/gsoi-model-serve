@@ -1,0 +1,45 @@
+#!/bin/sh
+# gsoi-model-serve — avvia il server del modello LLM locale di GSOI.
+#
+# Espone un endpoint OpenAI-compatible su 127.0.0.1:8091, che jarvis-mini
+# interroga come "cervello a bordo" (JARVIS_AI=local). Cerca un server
+# disponibile (llama.cpp o Ollama) e il file GGUF del modello. Se manca
+# qualcosa, spiega cosa fare e termina: jarvis-mini ripiega sul mock.
+#
+# Il modello vive in una cartella MUTABILE (/var/lib/gsoi-model), cosi' si
+# aggiorna via OTA senza ricostruire l'immagine.
+set -eu
+
+HOST="127.0.0.1"
+PORT="8091"
+MODEL_DIR="/var/lib/gsoi-model"
+
+log() { echo "gsoi-model: $*"; }
+
+# Primo .gguf trovato nella cartella del modello.
+MODEL_FILE="$(ls "${MODEL_DIR}"/*.gguf 2>/dev/null | head -n1 || true)"
+
+if [ -z "${MODEL_FILE}" ]; then
+    log "nessun modello .gguf in ${MODEL_DIR}."
+    log "Copia qui il GGUF (es. qwen3-4b-instruct-q4_k_m.gguf) e riavvia:"
+    log "  systemctl restart gsoi-model"
+    exit 1
+fi
+
+# 1) llama.cpp server: espone gia' /v1/chat/completions (OpenAI-compatible).
+if command -v llama-server >/dev/null 2>&1; then
+    log "avvio llama-server con ${MODEL_FILE} su ${HOST}:${PORT}"
+    exec llama-server -m "${MODEL_FILE}" --host "${HOST}" --port "${PORT}"
+fi
+
+# 2) Ollama (alternativa): serve su :11434 — adegua JARVIS_MODEL_URL.
+if command -v ollama >/dev/null 2>&1; then
+    log "llama-server assente: avvio 'ollama serve' (endpoint su :11434)."
+    log "Imposta JARVIS_MODEL_URL=http://127.0.0.1:11434/v1 in jarvis-mini."
+    exec ollama serve
+fi
+
+log "nessun server modello trovato (ne' llama-server ne' ollama)."
+log "Aggiungi un layer/ricetta che fornisce il server (es. llama.cpp) e"
+log "reinstalla l'immagine."
+exit 1

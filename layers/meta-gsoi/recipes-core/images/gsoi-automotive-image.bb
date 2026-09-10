@@ -9,6 +9,7 @@ IMAGE_INSTALL:append = " \
     bash \
     python3 \
     jarvis-mini \
+    gsoi-model \
     weston \
     weston-init \
     gsoi-cockpit \
