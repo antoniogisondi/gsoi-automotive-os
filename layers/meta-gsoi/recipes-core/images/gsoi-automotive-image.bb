@@ -10,6 +10,7 @@ IMAGE_INSTALL:append = " \
     python3 \
     jarvis-mini \
     gsoi-model \
+    gsoi-model-weights \
     weston \
     weston-init \
     gsoi-cockpit \
@@ -17,6 +18,11 @@ IMAGE_INSTALL:append = " \
     ttf-dejavu-sans \
     source-serif-4 \
 "
+
+# gsoi-model-weights scarica il .gguf del modello (~2,5 GB) da HuggingFace e lo
+# mette in /var/lib/gsoi-model: cosi' il cervello e' gia' dentro l'immagine.
+# Per una build piu' leggera (senza modello), rimuovi 'gsoi-model-weights' qui
+# sopra: gsoi-model resta inattivo e jarvis-mini usa il mock.
 
 IMAGE_FEATURES += "ssh-server-openssh"
 
