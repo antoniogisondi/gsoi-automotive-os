@@ -17,17 +17,16 @@ SRC_URI = " \
 # Solo script + unit systemd: nessun binario compilato qui.
 inherit allarch systemd
 
-# Il drop-in attiva il cervello locale in jarvis-mini: ha senso solo se
-# l'agente e' presente nell'immagine.
-RDEPENDS:${PN} += "jarvis-mini"
+# Dipendenze runtime:
+#  - jarvis-mini: il drop-in attiva il cervello locale nell'agente;
+#  - llama-cpp:   fornisce 'llama-server', il motore che il launcher avvia.
+RDEPENDS:${PN} += "jarvis-mini llama-cpp"
 
-# NOTA: il server vero (llama.cpp / ollama) e il file .gguf del modello NON
-# sono forniti da questa ricetta. Il launcher li cerca a runtime:
-#   - server: un binario 'llama-server' o 'ollama' nel PATH (da un layer che
-#     lo fornisce, es. una ricetta llama.cpp — su Jetson: TensorRT-LLM);
-#   - modello: un file *.gguf in /var/lib/gsoi-model (installato via OTA o
-#     copiato in fase di provisioning).
-# Finche' mancano, il servizio resta inattivo e jarvis-mini usa il mock.
+# NOTA: il SERVER (llama-server) ora e' fornito dalla ricetta llama-cpp ed e'
+# tirato dentro l'immagine da questo RDEPENDS. Resta a carico del runtime solo
+# il file .gguf del modello: va messo in /var/lib/gsoi-model (via OTA o
+# provisioning). Finche' il modello manca, il servizio resta inattivo e
+# jarvis-mini usa il mock.
 
 SYSTEMD_SERVICE:${PN} = "gsoi-model.service"
 SYSTEMD_AUTO_ENABLE = "enable"
