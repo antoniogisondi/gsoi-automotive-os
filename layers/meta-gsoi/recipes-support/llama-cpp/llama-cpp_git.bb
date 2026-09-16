@@ -47,3 +47,5 @@ FILES:${PN} += " \
     ${bindir}/llama-cli \
     ${bindir}/llama-quantize \
 "
+
+RDEPENDS:${PN} += "libssl libcrypto"

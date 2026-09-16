@@ -34,16 +34,16 @@ SYSTEMD_AUTO_ENABLE = "enable"
 do_install() {
     # Launcher del server.
     install -d ${D}${bindir}
-    install -m 0755 ${WORKDIR}/gsoi-model-serve ${D}${bindir}/gsoi-model-serve
+    install -m 0755 ${UNPACKDIR}/gsoi-model-serve ${D}${bindir}/gsoi-model-serve
 
     # Unit del servizio.
     install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${WORKDIR}/gsoi-model.service \
+    install -m 0644 ${UNPACKDIR}/gsoi-model.service \
         ${D}${systemd_system_unitdir}/gsoi-model.service
 
     # Drop-in che attiva JARVIS_AI=local in jarvis-mini quando gsoi-model c'e'.
     install -d ${D}${systemd_system_unitdir}/jarvis-mini.service.d
-    install -m 0644 ${WORKDIR}/jarvis-mini-local.conf \
+    install -m 0644 ${UNPACKDIR}/jarvis-mini-local.conf \
         ${D}${systemd_system_unitdir}/jarvis-mini.service.d/10-gsoi-model.conf
 
     # Cartella mutabile del modello (popolata dopo: build/OTA/provisioning).

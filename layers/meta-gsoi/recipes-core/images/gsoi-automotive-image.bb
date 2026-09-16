@@ -29,10 +29,13 @@ IMAGE_FEATURES += "ssh-server-openssh"
 # Splash di boot (psplash con logo GSOI) al posto del testo del kernel.
 IMAGE_FEATURES += "splash"
 
-# Niente prompt di login sulla console grafica (tty1): sullo schermo
-# dell'auto non si deve vedere il getty. La console seriale (debug/ssh)
-# resta disponibile.
-ROOTFS_POSTPROCESS_COMMAND += "gsoi_mask_tty1_getty;"
-gsoi_mask_tty1_getty() {
-    ln -sf /dev/null ${IMAGE_ROOTFS}${sysconfdir}/systemd/system/getty@tty1.service
+# Kiosk: nessun getty sulle VT grafiche (Weston possiede lo schermo).
+# NB: NON si maschera getty@tty1 con /dev/null: 'systemctl preset-all'
+# (systemd recente) fallisce sulle unit mascherate e rompe do_rootfs.
+# Si disattivano gli autovt via logind. La console seriale resta attiva.
+ROOTFS_POSTPROCESS_COMMAND += "gsoi_kiosk_no_vt_getty;"
+gsoi_kiosk_no_vt_getty() {
+    install -d ${IMAGE_ROOTFS}${sysconfdir}/systemd/logind.conf.d
+    printf '[Login]\nNAutoVTs=0\nReserveVT=0\n' > \
+        ${IMAGE_ROOTFS}${sysconfdir}/systemd/logind.conf.d/00-gsoi-kiosk.conf
 }

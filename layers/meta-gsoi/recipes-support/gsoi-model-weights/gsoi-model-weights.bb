@@ -23,7 +23,7 @@ inherit allarch
 
 do_install() {
     install -d ${D}${localstatedir}/lib/gsoi-model
-    install -m 0644 ${WORKDIR}/gsoi-qwen3-4b-q4_k_m.gguf \
+    install -m 0644 ${UNPACKDIR}/gsoi-qwen3-4b-q4_k_m.gguf \
         ${D}${localstatedir}/lib/gsoi-model/gsoi-qwen3-4b-q4_k_m.gguf
 }
 

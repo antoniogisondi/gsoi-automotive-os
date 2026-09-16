@@ -29,7 +29,7 @@ fi
 # 1) llama.cpp server: espone gia' /v1/chat/completions (OpenAI-compatible).
 if command -v llama-server >/dev/null 2>&1; then
     log "avvio llama-server con ${MODEL_FILE} su ${HOST}:${PORT}"
-    exec llama-server -m "${MODEL_FILE}" --host "${HOST}" --port "${PORT}"
+    exec llama-server -m "${MODEL_FILE}" --host "${HOST}" --port "${PORT}" -c 4096
 fi
 
 # 2) Ollama (alternativa): serve su :11434 — adegua JARVIS_MODEL_URL.
