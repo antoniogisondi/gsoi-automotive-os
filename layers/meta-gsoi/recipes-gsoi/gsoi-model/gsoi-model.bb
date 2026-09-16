@@ -12,6 +12,7 @@ SRC_URI = " \
     file://gsoi-model.service \
     file://gsoi-model-serve \
     file://jarvis-mini-local.conf \
+    file://gsoi-ai.sh \
 "
 
 # Solo script + unit systemd: nessun binario compilato qui.
@@ -48,9 +49,14 @@ do_install() {
 
     # Cartella mutabile del modello (popolata dopo: build/OTA/provisioning).
     install -d ${D}${localstatedir}/lib/gsoi-model
+
+    # Le shell di login usano il modello locale (niente mock nei test a mano).
+    install -d ${D}${sysconfdir}/profile.d
+    install -m 0644 ${UNPACKDIR}/gsoi-ai.sh ${D}${sysconfdir}/profile.d/gsoi-ai.sh
 }
 
 FILES:${PN} += " \
     ${systemd_system_unitdir}/jarvis-mini.service.d/10-gsoi-model.conf \
     ${localstatedir}/lib/gsoi-model \
+    ${sysconfdir}/profile.d/gsoi-ai.sh \
 "
