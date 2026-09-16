@@ -10,8 +10,10 @@ LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
 # Fetch del .gguf da HuggingFace (repo pubblico -> nessun token richiesto).
-# Per aggiornare il modello: nuovo upload su HF, poi cambia SHA256 qui sotto.
-SRC_URI = "https://huggingface.co/gsoi/gsoi-qwen3-4b-gguf/resolve/main/qwen3-4b-instruct-2507.Q4_K_M.gguf;downloadfilename=gsoi-qwen3-4b-q4_k_m.gguf"
+# URL pinnato alla revisione del commit (non a 'main') per build riproducibili.
+# Per aggiornare il modello: nuovo upload su HF, poi aggiorna la revisione
+# nell'URL e lo SHA256 qui sotto.
+SRC_URI = "https://huggingface.co/gsoi/gsoi-qwen3-4b-gguf/resolve/858404dead71855ada0781bf179c17807dd46920/qwen3-4b-instruct-2507.Q4_K_M.gguf;downloadfilename=gsoi-qwen3-4b-q4_k_m.gguf"
 SRC_URI[sha256sum] = "7f9a0153adc60ef99851cb6353e15f282240dec752432c230d48dfc7e8c6663c"
 
 PV = "0.1"
