@@ -13,8 +13,9 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7ca
 # URL pinnato alla revisione del commit (non a 'main') per build riproducibili.
 # Per aggiornare il modello: nuovo upload su HF, poi aggiorna la revisione
 # nell'URL e lo SHA256 qui sotto.
-SRC_URI = "https://huggingface.co/gsoi/gsoi-qwen3-4b-gguf/resolve/858404dead71855ada0781bf179c17807dd46920/qwen3-4b-instruct-2507.Q4_K_M.gguf;downloadfilename=gsoi-qwen3-4b-q4_k_m.gguf"
-SRC_URI[sha256sum] = "7f9a0153adc60ef99851cb6353e15f282240dec752432c230d48dfc7e8c6663c"
+SRC_URI = "https://huggingface.co/gsoi/gsoi-qwen3-4b-gguf/resolve/fb67caf9503a9f1e9818f167b41b8829c08fab45/qwen3-4b-instruct-2507.Q4_K_M.gguf;downloadfilename=gsoi-qwen3-4b-q4_k_m.gguf"
+SRC_URI[sha256sum] = "889bc6b2fb22ea2526343ae65610f61c6591da4cf161ce9812535743bcfc8299"
+
 
 PV = "0.1"
 
