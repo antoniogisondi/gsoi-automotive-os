@@ -16,10 +16,10 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 # una volta unito il lavoro su main).
 SRC_URI = "git://github.com/antoniogisondi/gsoi-jarvis-mini.git;protocol=https;branch=${GSOI_JARVIS_MINI_BRANCH}"
 
-GSOI_JARVIS_MINI_BRANCH ?= "claude/jarvis-mini-v0.1"
+GSOI_JARVIS_MINI_BRANCH ?= "main"
 # Include il backend del modello LLM locale (cervello a bordo, JARVIS_AI=local)
 # e la pipeline di fine-tuning in finetune/ (non pacchettizzata).
-SRCREV = "20bf7fa150691500832ad04ba83ecfea5987e0ec"
+SRCREV = "30155f808088c40c375d857aa41aba4eba6cb98b"
 
 PV = "0.1.0+git"
 # Nota: non impostare S = "${WORKDIR}/git": in questa release di OE-Core
