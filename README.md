@@ -88,7 +88,7 @@ POWER ON
 | `conf/distro/gsoi-automotive.conf` | La distro (offline-first, systemd, Wayland) |
 | `recipes-gsoi/jarvis-mini/` | Il Car Agent come servizio systemd (pin per SRCREV) |
 | `recipes-gsoi/gsoi-model/` | Servizio `gsoi-model` + launcher `llama-server` + drop-in |
-| `recipes-gsoi/cockpit/` | Il cockpit Qt/QML, avviato da Weston |
+| `recipes-gsoi/cockpit/` | Il cockpit Qt/QML, avviato da Weston (include la retrocamera + sensori su retromarcia, indipendente dall'AI) |
 | `recipes-support/llama-cpp/` | Compila `llama-server` (motore di inferenza) |
 | `recipes-support/gsoi-model-weights/` | Scarica il `.gguf` del modello da HuggingFace |
 | `recipes-graphics/` | Splash di boot, autostart cockpit su Weston, font |

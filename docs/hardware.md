@@ -112,7 +112,30 @@ Il Pi esce a **livello linea**, non pilota gli altoparlanti dell'auto.
 
 ---
 
-## 7. Radio (opzionale — la Media Nav aveva DAB/FM)
+## 7. Retrocamera e sensori di parcheggio (retromarcia)
+
+Come la Media Nav di serie: innestando la retromarcia compare a tutto schermo il
+video della telecamera posteriore (con linee guida) e i sensori di parcheggio.
+Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
+
+| # | Componente | Note | Prezzo |
+|---|---|---|---|
+| 🟡 | **Telecamera posteriore** (riusa quella di serie, o aftermarket) | uscita **video composito** analogico | 0 (riuso) / ~15–30 € |
+| 🟡 | **Dongle USB di acquisizione video (UVC)** composito→USB | porta il video nel Pi (V4L2, plug-and-play) | ~15–25 € |
+| 🔴 | **Optoisolatore / convertitore di livello** per il filo luce-retromarcia | isola i **+12 V** del filo retro dai **3,3 V** del GPIO | ~3–8 € |
+| 🟢 | **Sensori di parcheggio (PDC)** | dal **CAN** (sola lettura) se l'auto li trasmette, oppure **kit ultrasuoni** dedicato | 0 / ~20–40 € |
+
+> **Come funziona:** il **filo della luce di retromarcia** (+12 V con la R
+> innestata) va, tramite **optoisolatore**, a un **GPIO** del Pi → il cockpit
+> rileva la retromarcia e mostra video + sensori. Il video entra dal **dongle di
+> acquisizione** (device V4L2). Nessun passaggio dall'AI.
+>
+> Per la **telecamera reale** serve `qtmultimedia` nell'immagine; il cockpit ha
+> già la schermata (con segnaposto in mock, tasto `R` per il test in QEMU).
+
+---
+
+## 8. Radio (opzionale — la Media Nav aveva DAB/FM)
 
 | # | Componente | Note | Prezzo |
 |---|---|---|---|
@@ -123,7 +146,7 @@ Il Pi esce a **livello linea**, non pilota gli altoparlanti dell'auto.
 
 ---
 
-## 8. Alimentazione (rete auto 12 V → 5 V)
+## 9. Alimentazione (rete auto 12 V → 5 V)
 
 | # | Componente | Note | Prezzo |
 |---|---|---|---|
@@ -136,7 +159,7 @@ Il Pi esce a **livello linea**, non pilota gli altoparlanti dell'auto.
 
 ---
 
-## 9. Connettività (opzionale)
+## 10. Connettività (opzionale)
 
 | # | Componente | Note | Prezzo |
 |---|---|---|---|
@@ -165,6 +188,10 @@ Il Pi esce a **livello linea**, non pilota gli altoparlanti dell'auto.
                                                                  │
    OBD-II ELM327 (SOLA LETTURA) ─────────────── USB ─────────────┤
                                                                  │
+   Telecamera post. ─► Dongle acquisizione video ─ USB ─────────┤
+   Filo luce-retro (+12V) ─► optoisolatore ─────► GPIO ─────────┤
+   Sensori PDC (CAN sola lettura / kit) ────────────────────────┤
+                                                                 │
    [opz.] Dongle DAB/FM ─────────────────────── USB ─────────────┤
    [opz.] Dongle 4G/LTE ─────────────────────── USB ─────────────┘
 
@@ -190,8 +217,9 @@ Il Pi esce a **livello linea**, non pilota gli altoparlanti dell'auto.
 | Audio | mini-amp 4ch + DAC USB | ~60 € |
 | Microfono | ReSpeaker / USB noise-cancel | ~30 € |
 | OBD-II | ELM327 USB | ~20 € |
+| Retrocamera | telecamera (riuso) + acquisizione USB + optoisolatore | ~25–40 € |
 | Alimentazione | DC-DC 5 V/5 A + ignition sense | ~40 € |
-| **Totale indicativo** | | **~440–540 €** |
+| **Totale indicativo** | | **~465–580 €** |
 
 > **Extra opzionali:** radio DAB/FM (~30 €), 4G/LTE (~35 €), GPS (~12 €).
 > **Solo sviluppo:** schermo Pi da banco ~40 € (non va in auto).

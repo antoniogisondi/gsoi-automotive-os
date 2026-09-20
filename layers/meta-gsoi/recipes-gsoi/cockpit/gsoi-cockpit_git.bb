@@ -10,7 +10,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 SRC_URI = "git://github.com/antoniogisondi/gsoi-cockpit.git;protocol=https;branch=${GSOI_COCKPIT_BRANCH}"
 
 GSOI_COCKPIT_BRANCH ?= "main"
-SRCREV = "24d45b572b00241c9360248cecbcdd0a3c8bbeaa"
+SRCREV = "ee56b2824bd2f123852d3dde6686e843d6cad410"
 
 PV = "0.1.0+git"
 
