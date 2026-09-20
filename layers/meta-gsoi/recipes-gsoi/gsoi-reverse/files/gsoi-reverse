@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""gsoi-reverse — retrocamera/sensori di parcheggio (retromarcia).
+
+Funzione di SICUREZZA, INDIPENDENTE dall'AI (niente Jarvis Mini, niente LLM).
+Legge lo stato della retromarcia dal filo luce-retromarcia (GPIO) e, se
+disponibili, le distanze dei sensori di parcheggio (PDC), ed espone tutto in
+JSON su http://127.0.0.1:8092/reverse per il cockpit.
+
+    GET /reverse  ->  {"reverse": true|false, "zones": [cm, cm, cm, cm]}
+
+Backend GPIO (retromarcia), via variabili d'ambiente:
+    GSOI_REVERSE_GPIOCHIP    chip gpiod (default: gpiochip0)
+    GSOI_REVERSE_GPIOLINE    numero della linea del filo luce-retro
+    GSOI_REVERSE_ACTIVE_LOW  "1" se il segnale è attivo-basso (default "0")
+
+Senza GPIOLINE configurato (es. in QEMU, o su un banco) resta in mock:
+reverse=false — il test si fa dal cockpit col tasto R. Sull'hardware si imposta
+la linea nel service e si installa il binding python di libgpiod.
+
+I sensori PDC sono un hook (`read_zones`): sull'hardware si legge dal CAN in
+sola lettura o da un kit dedicato; senza sorgente restano vuoti (il cockpit
+mostra comunque il video con le linee guida).
+"""
+
+import json
+import os
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+HOST = os.environ.get("GSOI_REVERSE_HOST", "127.0.0.1")
+PORT = int(os.environ.get("GSOI_REVERSE_PORT", "8092"))
+POLL_S = float(os.environ.get("GSOI_REVERSE_POLL", "0.05"))  # 20 Hz: reattivo
+
+_state = {"reverse": False, "zones": []}
+_lock = threading.Lock()
+
+
+def _publish(reverse, zones):
+    with _lock:
+        _state["reverse"] = bool(reverse)
+        _state["zones"] = list(zones)
+
+
+def _snapshot():
+    with _lock:
+        return dict(_state)
+
+
+# --- Retromarcia: lettura del GPIO (libgpiod v2) ----------------------------
+class GpioReverse:
+    """Legge la linea GPIO del filo luce-retromarcia (True = R innestata)."""
+
+    def __init__(self, chip, line, active_low):
+        import gpiod  # richiede il binding python di libgpiod (hardware)
+        from gpiod.line import Direction, Value
+
+        self._Value = Value
+        self._active_low = active_low
+        self._line = line
+        path = chip if chip.startswith("/dev/") else "/dev/" + chip
+        self._req = gpiod.request_lines(
+            path,
+            consumer="gsoi-reverse",
+            config={line: gpiod.LineSettings(direction=Direction.INPUT)},
+        )
+
+    def read(self):
+        active = self._req.get_value(self._line) == self._Value.ACTIVE
+        return (not active) if self._active_low else active
+
+
+def make_reverse_reader():
+    line = os.environ.get("GSOI_REVERSE_GPIOLINE")
+    if line is None:
+        print("gsoi-reverse: nessun GPIO configurato -> mock (reverse=false).")
+        return None
+    try:
+        return GpioReverse(
+            os.environ.get("GSOI_REVERSE_GPIOCHIP", "gpiochip0"),
+            int(line),
+            os.environ.get("GSOI_REVERSE_ACTIVE_LOW", "0") == "1",
+        )
+    except Exception as exc:  # binding assente o linea non valida -> mock
+        print(f"gsoi-reverse: GPIO non disponibile ({exc}); resto in mock.")
+        return None
+
+
+# --- Sensori PDC (hook) -----------------------------------------------------
+def read_zones():
+    """Distanze (cm) delle 4 zone posteriori. Vuoto = nessuna sorgente.
+
+    TODO hardware: leggere dal CAN (sola lettura) o da un kit ultrasuoni.
+    """
+    return []
+
+
+# --- Loop di lettura --------------------------------------------------------
+def reader_loop():
+    reader = make_reverse_reader()
+    while True:
+        try:
+            rev = reader.read() if reader is not None else False
+        except Exception as exc:
+            print(f"gsoi-reverse: errore lettura GPIO ({exc}).")
+            rev = False
+        _publish(rev, read_zones() if rev else [])
+        time.sleep(POLL_S)
+
+
+# --- HTTP -------------------------------------------------------------------
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.rstrip("/") not in ("/reverse", ""):
+            self.send_response(404)
+            self.end_headers()
+            return
+        body = json.dumps(_snapshot()).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass  # silenzio (è un servizio)
+
+
+def main():
+    threading.Thread(target=reader_loop, daemon=True).start()
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"gsoi-reverse pronto su http://{HOST}:{PORT}/reverse")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,24 @@
+[Unit]
+Description=GSOI Reverse — retrocamera/sensori su retromarcia (indipendente dall'AI)
+Documentation=https://github.com/antoniogisondi/gsoi-automotive-os
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gsoi-reverse
+# Funzione di sicurezza: deve restare sempre attiva.
+Restart=always
+RestartSec=2
+
+# In auto: decommenta e imposta la linea GPIO del filo luce-retromarcia.
+# Environment=GSOI_REVERSE_GPIOCHIP=gpiochip0
+# Environment=GSOI_REVERSE_GPIOLINE=4
+# Environment=GSOI_REVERSE_ACTIVE_LOW=0
+
+# Confinamento: legge solo GPIO/CAN e serve testo su localhost.
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
