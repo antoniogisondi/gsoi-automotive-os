@@ -1,0 +1,23 @@
+[Unit]
+Description=GSOI Vehicle Data — quadro strumenti (CAN sola lettura, indipendente dall'AI)
+Documentation=https://github.com/antoniogisondi/gsoi-automotive-os
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gsoi-vehicled
+# Strumentazione di guida: deve restare sempre attiva.
+Restart=always
+RestartSec=2
+
+# In auto: decommenta e imposta l'interfaccia SocketCAN del bus veicolo.
+# La lettura è SOLA LETTURA (nessuna trasmissione sul bus).
+# Environment=GSOI_VEHICLE_CAN=can0
+
+# Confinamento: ascolta solo il CAN e serve testo su localhost.
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

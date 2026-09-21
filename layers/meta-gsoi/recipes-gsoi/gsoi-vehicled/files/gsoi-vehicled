@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""gsoi-vehicled — dati del veicolo per il QUADRO STRUMENTI digitale.
+
+Funzione di STRUMENTAZIONE/SICUREZZA, INDIPENDENTE dall'AI (niente Jarvis Mini,
+niente LLM). Legge dal bus CAN in SOLA LETTURA velocità, giri motore,
+temperatura, carburante, spie, frecce, ed espone tutto in JSON su
+http://127.0.0.1:8093/vehicle per l'app `gsoi-cluster`.
+
+    GET /vehicle  ->  {
+        "online": true,
+        "speed_kmh": 0, "rpm": 0, "coolant_c": 0, "fuel_pct": 0,
+        "gear": "", "odometer_km": 0, "trip_km": 0.0, "outside_c": 0,
+        "turn_left": false, "turn_right": false,
+        "telltales": { "high_beam": false, "glow": false, "low_fuel": false,
+                       "coolant": false, "battery": false, "oil": false,
+                       "engine": false, "brake": false, "abs": false,
+                       "airbag": false, "seatbelt": false }
+    }
+
+Sorgente CAN (opzionale), via variabili d'ambiente:
+    GSOI_VEHICLE_CAN     interfaccia SocketCAN (es. "can0"). Se assente -> mock.
+
+SOLA LETTURA: il socket CAN viene solo ascoltato, non si trasmette nulla. La
+decodifica dei frame (ID specifici del veicolo, es. Renault Clio IV) è un hook
+`decode_frame`: va completata sull'hardware con la mappa CAN reale. Finché non
+c'è una sorgente CAN configurata, il servizio gira in MOCK e anima valori
+dimostrativi, così il quadro è visibile e rifinibile anche in QEMU.
+"""
+
+import json
+import math
+import os
+import struct
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+HOST = os.environ.get("GSOI_VEHICLE_HOST", "127.0.0.1")
+PORT = int(os.environ.get("GSOI_VEHICLE_PORT", "8093"))
+
+_TELLTALES = ("high_beam", "glow", "low_fuel", "coolant", "battery", "oil",
+              "engine", "brake", "abs", "airbag", "seatbelt")
+
+
+def _blank_state():
+    return {
+        "online": False,
+        "speed_kmh": 0, "rpm": 0, "coolant_c": 0, "fuel_pct": 0,
+        "gear": "", "odometer_km": 0, "trip_km": 0.0, "outside_c": 0,
+        "turn_left": False, "turn_right": False,
+        "telltales": {k: False for k in _TELLTALES},
+    }
+
+
+_state = _blank_state()
+_lock = threading.Lock()
+
+
+def _publish(new):
+    with _lock:
+        _state.clear()
+        _state.update(new)
+
+
+def _snapshot():
+    with _lock:
+        return json.loads(json.dumps(_state))  # copia profonda
+
+
+# --- Sorgente CAN reale (sola lettura) --------------------------------------
+class CanVehicle:
+    """Ascolta il bus CAN (SocketCAN) e aggiorna lo stato. NON trasmette."""
+
+    CAN_FRAME_FMT = "=IB3x8s"  # can_id, can_dlc, pad(3), data(8) -> struct can_frame
+
+    def __init__(self, ifname):
+        import socket  # AF_CAN esiste solo su Linux
+        self._sock = socket.socket(socket.AF_CAN, socket.SOCK_RAW,
+                                   socket.CAN_RAW)
+        self._sock.bind((ifname,))
+        self._sock.settimeout(1.0)
+        self._st = _blank_state()
+        self._st["online"] = True
+
+    def loop(self):
+        while True:
+            try:
+                frame = self._sock.recv(16)
+            except OSError:
+                continue
+            if len(frame) < 16:
+                continue
+            can_id, dlc, data = struct.unpack(self.CAN_FRAME_FMT, frame)
+            can_id &= 0x1FFFFFFF
+            if decode_frame(can_id, data[:dlc], self._st):
+                _publish(self._st)
+
+
+def decode_frame(can_id, data, st):
+    """Aggiorna `st` dal frame CAN. Ritorna True se qualcosa è cambiato.
+
+    TODO hardware: mappare gli ID del veicolo (Renault Clio IV, 1.5 dCi).
+    Esempio (da verificare col veicolo reale, mai valori inventati in produzione):
+        if can_id == 0x354:            # velocità
+            st["speed_kmh"] = int(...)
+            return True
+    Finché la mappa non è nota, non si tocca nulla: il quadro mostra 0 ma il
+    pallino "CAN" resta verde (bus presente).
+    """
+    return False
+
+
+# --- Mock (QEMU / banco) ----------------------------------------------------
+class MockVehicle:
+    """Anima valori dimostrativi realistici, senza CAN."""
+
+    def __init__(self):
+        self.t0 = time.monotonic()
+        self.fuel = 64.0
+        self.odo = 128450.0
+        self.trip = 12.8
+
+    def step(self):
+        t = time.monotonic() - self.t0
+        st = _blank_state()
+        st["online"] = True
+
+        # Velocità: guida "urbana" morbida 0..90.
+        base = 45 + 45 * math.sin(t / 11.0)
+        speed = max(0.0, base + 6.0 * math.sin(t / 2.3))
+        st["speed_kmh"] = int(round(speed))
+
+        # Giri: minimo 850, sale con la velocità (marcia "virtuale").
+        st["rpm"] = int(round(850 + speed * 32 + 120 * math.sin(t / 1.7)))
+
+        # Temperatura motore: parte fredda (~40) e sale a ~88.
+        st["coolant_c"] = int(round(min(88.0, 40.0 + t * 0.9) +
+                                    0.5 * math.sin(t)))
+
+        # Carburante: cala molto lentamente.
+        self.fuel = max(0.0, self.fuel - 0.0006)
+        st["fuel_pct"] = int(round(self.fuel))
+
+        # Contachilometri / tragitto.
+        dkm = speed / 3600.0 * 0.05  # ~step da 20 Hz
+        self.odo += dkm
+        self.trip += dkm
+        st["odometer_km"] = int(self.odo)
+        st["trip_km"] = round(self.trip, 1)
+        st["outside_c"] = 19
+
+        # Frecce: brevi lampeggi periodici (una svolta ogni ~30 s).
+        phase = t % 30.0
+        st["turn_right"] = 3.0 < phase < 7.0
+        st["turn_left"] = 18.0 < phase < 22.0
+
+        tt = st["telltales"]
+        tt["glow"] = t < 4.0                 # preriscaldo candelette (avvio)
+        tt["seatbelt"] = t < 6.0             # cintura all'avvio
+        tt["low_fuel"] = st["fuel_pct"] <= 12
+        tt["high_beam"] = (t % 40.0) > 34.0  # abbaglianti ogni tanto
+        tt["coolant"] = st["coolant_c"] >= 115
+        _publish(st)
+
+
+# --- Loop di acquisizione ---------------------------------------------------
+def reader_loop():
+    ifname = os.environ.get("GSOI_VEHICLE_CAN")
+    if ifname:
+        try:
+            can = CanVehicle(ifname)
+            print(f"gsoi-vehicled: CAN '{ifname}' in sola lettura.")
+            can.loop()
+            return
+        except Exception as exc:
+            print(f"gsoi-vehicled: CAN non disponibile ({exc}); passo al mock.")
+
+    print("gsoi-vehicled: nessun CAN configurato -> mock animato.")
+    mock = MockVehicle()
+    while True:
+        mock.step()
+        time.sleep(0.05)  # 20 Hz
+
+
+# --- HTTP -------------------------------------------------------------------
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.rstrip("/") not in ("/vehicle", ""):
+            self.send_response(404)
+            self.end_headers()
+            return
+        body = json.dumps(_snapshot()).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass  # silenzio (è un servizio)
+
+
+def main():
+    threading.Thread(target=reader_loop, daemon=True).start()
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"gsoi-vehicled pronto su http://{HOST}:{PORT}/vehicle")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    main()

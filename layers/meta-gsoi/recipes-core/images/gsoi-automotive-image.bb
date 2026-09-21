@@ -15,6 +15,7 @@ IMAGE_INSTALL:append = " \
     weston-init \
     gsoi-cockpit \
     gsoi-reverse \
+    gsoi-vehicled \
     qtwayland \
     ttf-dejavu-sans \
     source-serif-4 \

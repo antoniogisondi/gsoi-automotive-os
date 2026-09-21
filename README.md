@@ -23,6 +23,7 @@ modello LLM che gira **localmente** — nessuna dipendenza da un server per
   - [Immagine per Raspberry Pi 5](#immagine-per-raspberry-pi-5)
 - [Il cervello locale (LLM)](#il-cervello-locale-llm)
 - [Aggiornare il modello](#aggiornare-il-modello)
+- [Schermi e quadro strumenti](#schermi-e-quadro-strumenti)
 - [Hardware](#hardware)
 - [Sicurezza](#sicurezza)
 - [Struttura della repo](#struttura-della-repo)
@@ -70,10 +71,19 @@ POWER ON
  systemd (multi-user.target)
    ├─ gsoi-model.service     → llama-server (llama.cpp) sul .gguf, su 127.0.0.1:8091
    ├─ jarvis-mini.service    → agente; JARVIS_AI=local → interroga :8091
-   └─ weston (kiosk)         → gsoi-cockpit a schermo intero (Wayland)
-                                   └─ legge /state da jarvis-mini per i dati live
+   ├─ gsoi-reverse.service   → retromarcia + sensori (GPIO/CAN) su :8092    [no-AI]
+   ├─ gsoi-vehicled.service  → dati veicolo (CAN sola lettura) su :8093     [no-AI]
+   └─ weston (kiosk)         → 2 schermi HDMI, un'app ciascuno (per app_id)
+        ├─ HDMI-A-1  gsoi-cockpit  → infotainment (/state da jarvis-mini)
+        │                            + overlay retrocamera su retromarcia (:8092)
+        └─ HDMI-A-2  gsoi-cluster  → quadro strumenti digitale (:8093)
 ```
 
+- **Funzioni di sicurezza indipendenti dall'AI:** la retrocamera/sensori
+  (`gsoi-reverse`) e il quadro strumenti (`gsoi-vehicled` + `gsoi-cluster`) non
+  passano da Jarvis Mini né dal modello. Leggono il veicolo in **sola lettura** e
+  restano operative anche con l'assistente spento. Il quadro **si affianca** a
+  quello OEM (odometro legale, spie omologate, immobilizer restano nell'OEM).
 - **Il cervello non esce dalla macchina:** jarvis-mini parla con gsoi-model su
   `localhost`, senza rete.
 - Se il modello non è ancora pronto (carica ~2,5 GB all'avvio) o assente,
@@ -88,11 +98,12 @@ POWER ON
 | `conf/distro/gsoi-automotive.conf` | La distro (offline-first, systemd, Wayland) |
 | `recipes-gsoi/jarvis-mini/` | Il Car Agent come servizio systemd (pin per SRCREV) |
 | `recipes-gsoi/gsoi-model/` | Servizio `gsoi-model` + launcher `llama-server` + drop-in |
-| `recipes-gsoi/cockpit/` | Il cockpit Qt/QML, avviato da Weston (include la schermata retrocamera + sensori su retromarcia) |
+| `recipes-gsoi/cockpit/` | Il cockpit Qt/QML **e** il quadro strumenti (2 eseguibili: `gsoi-cockpit` + `gsoi-cluster`); include la retrocamera + sensori su retromarcia |
 | `recipes-gsoi/gsoi-reverse/` | Servizio `gsoi-reverse`: legge la retromarcia (GPIO) + sensori (PDC) e li serve su `127.0.0.1:8092` — **indipendente dall'AI** |
+| `recipes-gsoi/gsoi-vehicled/` | Servizio `gsoi-vehicled`: legge i dati di guida dal **CAN (sola lettura)** e li serve su `127.0.0.1:8093` per il quadro strumenti — **indipendente dall'AI** |
 | `recipes-support/llama-cpp/` | Compila `llama-server` (motore di inferenza) |
 | `recipes-support/gsoi-model-weights/` | Scarica il `.gguf` del modello da HuggingFace |
-| `recipes-graphics/` | Splash di boot, autostart cockpit su Weston, font |
+| `recipes-graphics/` | Splash di boot, Weston kiosk (2 schermi HDMI, un'app per app_id), font |
 
 ## Build
 
@@ -126,8 +137,26 @@ Verifica (via `ssh -p 2222 root@127.0.0.1`, password vuota):
 
 ```bash
 systemctl is-active gsoi-model     # active
+systemctl is-active gsoi-reverse   # active (retrocamera/sensori)
+systemctl is-active gsoi-vehicled  # active (dati quadro strumenti)
+curl -s 127.0.0.1:8093/vehicle     # JSON animato (mock): velocità, giri, spie…
 jarvis-mini cli                    # "Chi sei?" -> risponde GSOI (modello locale)
 ```
+
+Nella finestra grafica di QEMU: premi **`R`** per simulare la **retromarcia**
+(compare la retrocamera + sensori a tutto schermo).
+
+**Provare il quadro strumenti in QEMU** (una sola uscita → di default parte solo
+il cockpit): forza l'app cluster con il flag e riavvia Weston:
+
+```bash
+mkdir -p /etc/gsoi && echo cluster > /etc/gsoi/ui-mode
+systemctl restart weston            # ora lo schermo mostra il quadro strumenti
+echo auto > /etc/gsoi/ui-mode && systemctl restart weston   # torna al cockpit
+```
+
+Sul **Raspberry Pi 5** con due HDMI collegati non serve il flag: `auto` mette il
+cockpit su `HDMI-A-1` e il quadro su `HDMI-A-2`.
 
 Per un'immagine **leggera** senza modello (solo boot + cockpit + agente mock),
 togli `gsoi-model-weights` da `IMAGE_INSTALL`.
@@ -178,6 +207,28 @@ Poi incolla le due righe stampate in
 
 *Aggiornamento veloce sul dispositivo:* copia il nuovo `.gguf` in
 `/var/lib/gsoi-model/` e `systemctl restart gsoi-model` — senza rebuild.
+
+## Schermi e quadro strumenti
+
+Il Raspberry Pi 5 ha **due uscite micro-HDMI**: l'OS pilota **due schermi**.
+
+| Schermo | app_id | App | Sorgente dati |
+| --- | --- | --- | --- |
+| Centrale (plancia) | `org.gsoi.cockpit` | `gsoi-cockpit` (infotainment) | jarvis-mini `/state` (:8090) |
+| Dietro al volante | `org.gsoi.cluster` | `gsoi-cluster` (quadro strumenti) | `gsoi-vehicled` (:8093, CAN sola lettura) |
+
+- **Weston kiosk** assegna ogni app alla sua uscita in base all'app_id
+  (`recipes-graphics/weston-init`). Il launcher `gsoi-ui-launch` avvia sempre il
+  cockpit e, se rileva una **2ª uscita HDMI collegata**, anche il quadro. Override
+  manuale con `/etc/gsoi/ui-mode` (`auto` | `cockpit` | `cluster` | `both`).
+- **Il quadro si affianca a quello OEM** (scelta di sicurezza): l'odometro
+  legale, le spie omologate e l'immobilizer restano nel quadro originale, che
+  rimane nodo del CAN. GSOI **legge** il bus e mostra un quadro digitale
+  aggiuntivo — reversibile, senza toccare la rete del veicolo.
+- **`gsoi-vehicled`** legge velocità/giri/temperatura/carburante/spie dal CAN in
+  **sola lettura**. La mappa degli ID del veicolo (Renault Clio IV 1.5 dCi) è un
+  hook da completare sull'hardware (`decode_frame`); finché non c'è CAN
+  configurato gira in **mock animato**, così il quadro è visibile in QEMU.
 
 ## Hardware
 

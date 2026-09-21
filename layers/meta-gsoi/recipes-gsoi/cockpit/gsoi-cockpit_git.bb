@@ -10,16 +10,18 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 SRC_URI = "git://github.com/antoniogisondi/gsoi-cockpit.git;protocol=https;branch=${GSOI_COCKPIT_BRANCH}"
 
 GSOI_COCKPIT_BRANCH ?= "main"
-SRCREV = "91ef4c79447b1c6516431b28fb6a2853e1e29beb"
+SRCREV = "1552189ccd841c288398a300deb4f279382394b6"
 
-PV = "0.1.0+git"
+PV = "0.4.0+git"
 
 # Dipendenze di build: Qt base + Qt Declarative (QML) e i loro tool nativi.
 DEPENDS = "qtbase qtdeclarative qtbase-native qtdeclarative-native"
 
 inherit qt6-cmake
 
-# Piccolo launcher: forza la piattaforma Wayland per l'app Qt.
+# Il build CMake produce DUE eseguibili: gsoi-cockpit (infotainment, schermo
+# centrale) e gsoi-cluster (quadro strumenti, 2a uscita HDMI). Launcher che
+# forzano la piattaforma Wayland per ciascuno.
 do_install:append() {
     install -d ${D}${bindir}
     cat > ${D}${bindir}/gsoi-cockpit-launch <<'EOF'
@@ -28,9 +30,16 @@ export QT_QPA_PLATFORM=wayland
 exec /usr/bin/gsoi-cockpit "$@"
 EOF
     chmod 0755 ${D}${bindir}/gsoi-cockpit-launch
+
+    cat > ${D}${bindir}/gsoi-cluster-launch <<'EOF'
+#!/bin/sh
+export QT_QPA_PLATFORM=wayland
+exec /usr/bin/gsoi-cluster "$@"
+EOF
+    chmod 0755 ${D}${bindir}/gsoi-cluster-launch
 }
 
-FILES:${PN} += "${bindir}/gsoi-cockpit-launch"
+FILES:${PN} += "${bindir}/gsoi-cockpit-launch ${bindir}/gsoi-cluster-launch"
 
 # Runtime: motore QML + moduli QtQuick + plugin piattaforma Wayland.
 RDEPENDS:${PN} += " \

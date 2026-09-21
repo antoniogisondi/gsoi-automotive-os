@@ -135,7 +135,39 @@ Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
 
 ---
 
-## 8. Radio (opzionale — la Media Nav aveva DAB/FM)
+## 8. Quadro strumenti digitale (2° schermo, dietro al volante)
+
+Un **secondo schermo** dietro al volante mostra il quadro strumenti GSOI
+(`gsoi-cluster`), che **si affianca** a quello OEM: l'originale resta al suo
+posto (odometro legale, spie omologate, immobilizer, nodo CAN) e GSOI **legge**
+il CAN in sola lettura per aggiungere un quadro digitale. Il Pi 5 pilota i due
+schermi dalle sue **due uscite micro-HDMI**.
+
+| # | Componente | Note | Prezzo |
+|---|---|---|---|
+| 🟡 | **Display "bar/stretched" da cruscotto** (8–12", es. 1920×720 o 1280×480) HDMI | formato largo da quadro; in alternativa un 7" IPS se lo spazio è ridotto | ~70–200 € |
+| 🔴 | **2° cavo micro-HDMI** (angolo) dal Pi 5 | usa la 2ª uscita HDMI del Pi 5 | ~6 € |
+| 🔴 | **Interfaccia CAN per il Pi** (MCP2515 SPI *oppure* CANable/USB-CAN) | legge il bus veicolo in **sola lettura** per velocità/giri/temp/spie | ~10–30 € |
+| 🟢 | Staffa/telaio dietro al volante (stampa 3D) | fissaggio del display nel cruscotto | 0–15 € |
+
+> **Come funziona:** il servizio **`gsoi-vehicled`** legge il **CAN in sola
+> lettura** (interfaccia MCP2515/USB-CAN) e pubblica i dati su `127.0.0.1:8093`;
+> l'app **`gsoi-cluster`** li mostra sul 2° schermo (Weston assegna le uscite per
+> app_id). La mappa degli ID CAN del **Clio IV 1.5 dCi** va rilevata sul veicolo
+> (hook `decode_frame` in `gsoi-vehicled`); finché non c'è, il quadro gira in
+> **mock animato** (visibile anche in QEMU).
+>
+> ⚠️ **Il quadro OEM non si rimuove.** Su Renault contiene l'odometro legale ed è
+> legato a immobilizer/gateway: toglierlo può rompere la rete CAN e ha
+> implicazioni legali (tachimetro omologato). GSOI si **affianca**, non sostituisce.
+>
+> *Nota CAN:* l'ELM327 USB della sezione 6 (per la telemetria di Jarvis Mini) è
+> a interrogazione ed è lento per un quadro in tempo reale; per il cluster serve
+> un'interfaccia che **ascolti** il bus (MCP2515/USB-CAN).
+
+---
+
+## 9. Radio (opzionale — la Media Nav aveva DAB/FM)
 
 | # | Componente | Note | Prezzo |
 |---|---|---|---|
@@ -146,7 +178,7 @@ Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
 
 ---
 
-## 9. Alimentazione (rete auto 12 V → 5 V)
+## 10. Alimentazione (rete auto 12 V → 5 V)
 
 | # | Componente | Note | Prezzo |
 |---|---|---|---|
@@ -159,15 +191,16 @@ Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
 
 ---
 
-## 10. Connettività (opzionale)
+## 11. Connettività (opzionale)
 
 | # | Componente | Note | Prezzo |
 |---|---|---|---|
-| 🟢 | **Dongle 4G/LTE USB** + SIM dati | ponte verso il server GSOI (Jarvis) fuori casa | ~25–40 € |
+| 🟢 | **Dongle 4G/LTE USB** + SIM dati | per le funzioni **online** (traffico, meteo, aggiornamenti OTA) | ~25–40 € |
 | 🟢 | Antenna GPS USB | posizione precisa per navigazione | ~12 € |
 
-> GSOI è **offline-first**: senza rete Jarvis Mini funziona lo stesso; la rete
-> serve solo per instradare le richieste complesse al server GSOI-LLM.
+> GSOI è **offline-first**: il modello LLM gira **a bordo**, senza server. Senza
+> rete l'assistente funziona lo stesso; la connettività serve **solo** alle
+> funzioni che la richiedono (traffico, meteo, OTA).
 
 ---
 
@@ -178,9 +211,13 @@ Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
    12V auto ──[fusibile]─┤ DC-DC 12V→5V/5A + ign. sense ├─► Raspberry Pi 5
                          └─────────────────────────────┘        │
                                                                 │
-   Schermo 7" open-frame (nel vano) ◄────── HDMI (angolo 90°) ──┤
+   Schermo 7" open-frame (nel vano) ◄────── HDMI-1 (angolo) ────┤
                         │  └──────────────── USB (touch) ────────┤
                         │                                        │
+   Quadro strumenti (dietro al volante) ◄── HDMI-2 (angolo) ────┤
+                                                                 │
+   Interfaccia CAN (MCP2515/USB-CAN, SOLA LETTURA) ─ SPI/USB ───┤
+                                                                 │
    Microfono USB ───────────────────────────── USB ─────────────┤
                                                                  │
    DAC/HAT audio ─► Amplificatore 4ch 12V ─► altoparlanti Clio   │
@@ -218,8 +255,9 @@ Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
 | Microfono | ReSpeaker / USB noise-cancel | ~30 € |
 | OBD-II | ELM327 USB | ~20 € |
 | Retrocamera | telecamera (riuso) + acquisizione USB + optoisolatore | ~25–40 € |
+| Quadro strumenti | 2° display cruscotto HDMI + cavo + interfaccia CAN | ~85–235 € |
 | Alimentazione | DC-DC 5 V/5 A + ignition sense | ~40 € |
-| **Totale indicativo** | | **~465–580 €** |
+| **Totale indicativo** | | **~550–815 €** |
 
 > **Extra opzionali:** radio DAB/FM (~30 €), 4G/LTE (~35 €), GPS (~12 €).
 > **Solo sviluppo:** schermo Pi da banco ~40 € (non va in auto).
@@ -232,7 +270,9 @@ Nell'OS è una funzione **indipendente dall'AI**, gestita dal **cockpit**.
    → testi GSOI su hardware vero uscendo da QEMU.
 2. **Poi (auto):** schermo open-frame automotive + montaggio + audio + OBD +
    alimentazione + microfono → installazione nella Clio.
-3. **Infine (comfort):** radio, 4G/LTE, GPS.
+3. **Quadro strumenti:** 2° display + interfaccia CAN dietro al volante
+   (si affianca all'OEM) → rilievo della mappa CAN del Clio IV.
+4. **Infine (comfort):** radio, 4G/LTE, GPS.
 
 ---
 
