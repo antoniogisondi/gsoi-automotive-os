@@ -10,9 +10,9 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 SRC_URI = "git://github.com/antoniogisondi/gsoi-cockpit.git;protocol=https;branch=${GSOI_COCKPIT_BRANCH}"
 
 GSOI_COCKPIT_BRANCH ?= "main"
-SRCREV = "b2015fe270e5d7c5bd1cef6bf036176a4e8cd80a"
+SRCREV = "ba5c6fc16945ed1434c34a8aacd01b28f51b5948"
 
-PV = "0.5.0+git"
+PV = "0.6.0+git"
 
 # Dipendenze di build: Qt base + Qt Declarative (QML) e i loro tool nativi.
 DEPENDS = "qtbase qtdeclarative qtbase-native qtdeclarative-native"
