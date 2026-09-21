@@ -18,6 +18,7 @@ IMAGE_INSTALL:append = " \
     gsoi-reverse \
     gsoi-vehicled \
     qtwayland \
+    qtsvg \
     ttf-dejavu-sans \
     source-serif-4 \
 "
