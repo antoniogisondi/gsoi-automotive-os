@@ -8,6 +8,7 @@ inherit core-image
 IMAGE_INSTALL:append = " \
     bash \
     python3 \
+    gsoi-detect \
     jarvis-mini \
     gsoi-model \
     gsoi-model-weights \

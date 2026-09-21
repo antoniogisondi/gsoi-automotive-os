@@ -17,6 +17,7 @@ modello LLM che gira **localmente** — nessuna dipendenza da un server per
 - [Cos'è e com'è fatto](#cosè-e-comè-fatto)
 - [L'ecosistema GSOI](#lecosistema-gsoi)
 - [Architettura al boot](#architettura-al-boot)
+- [Gira su qualsiasi auto (rilevamento hardware)](#gira-su-qualsiasi-auto-rilevamento-hardware)
 - [Componenti del layer `meta-gsoi`](#componenti-del-layer-meta-gsoi)
 - [Build](#build)
   - [Test rapido in QEMU](#test-rapido-in-qemu)
@@ -69,6 +70,7 @@ POWER ON
    │
    ▼
  systemd (multi-user.target)
+   ├─ gsoi-detect.service    → rileva l'hardware presente → /run/gsoi/capabilities.env
    ├─ gsoi-model.service     → llama-server (llama.cpp) sul .gguf, su 127.0.0.1:8091
    ├─ jarvis-mini.service    → agente; JARVIS_AI=local → interroga :8091
    ├─ gsoi-reverse.service   → retromarcia + sensori (GPIO/CAN) su :8092    [no-AI]
@@ -90,12 +92,38 @@ POWER ON
   jarvis-mini **ripiega sul mock** e riprende col modello appena disponibile —
   nessun boot bloccato.
 
+## Gira su qualsiasi auto (rilevamento hardware)
+
+GSOI non dà per scontato **nessun** hardware: si adatta a ciò che trova. Al boot
+**`gsoi-detect`** sonda il dispositivo e scrive le capacità in
+`/run/gsoi/capabilities.env` (e `.json` per le UI). Ogni servizio/UI le legge e
+si attiva **solo dove ha senso**.
+
+Capacità rilevate: numero e nome degli **schermi** (connettori DRM), **bus CAN**,
+**telecamere** V4L2, **audio**/**microfono** ALSA, **GPIO**, e il tipo di
+ambiente (bare-metal o emulazione).
+
+Come si adattano i componenti:
+
+| Capacità assente | Comportamento |
+| --- | --- |
+| Nessun 2° schermo | Il **quadro** non viene avviato; parte solo il cockpit |
+| Nessun CAN | `gsoi-vehicled` **non mostra dati finti** (`online=false`, "no CAN"). Il mock parte **solo in emulazione** (QEMU), non su un'auto vera |
+| Nessuna telecamera / GPIO retro | La retrocamera resta inattiva; nessun falso video |
+| Nessun audio / microfono | Le funzioni relative restano disattivate |
+
+Il CAN rilevato viene usato **senza configurazione**: se sull'auto la nostra
+interfaccia è attiva come `can0`, `gsoi-vehicled` la usa da sé. Principio
+generale: **i servizi si auto-rilevano e degradano con grazia** — non si
+bloccano mai per hardware mancante.
+
 ## Componenti del layer `meta-gsoi`
 
 | Ricetta / file | Cosa fa |
 | --- | --- |
 | `recipes-core/images/gsoi-automotive-image.bb` | L'immagine dell'OS (IMAGE_INSTALL, splash, kiosk) |
 | `conf/distro/gsoi-automotive.conf` | La distro (offline-first, systemd, Wayland) |
+| `recipes-gsoi/gsoi-detect/` | Rileva le capacità hardware al boot (schermi, CAN, camera…) → `/run/gsoi/capabilities.env`; permette a GSOI di adattarsi a qualsiasi auto |
 | `recipes-gsoi/jarvis-mini/` | Il Car Agent come servizio systemd (pin per SRCREV) |
 | `recipes-gsoi/gsoi-model/` | Servizio `gsoi-model` + launcher `llama-server` + drop-in |
 | `recipes-gsoi/cockpit/` | Il cockpit Qt/QML **e** il quadro strumenti (2 eseguibili: `gsoi-cockpit` + `gsoi-cluster`); include la retrocamera + sensori su retromarcia |

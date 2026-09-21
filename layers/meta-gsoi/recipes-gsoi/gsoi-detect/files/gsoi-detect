@@ -1,0 +1,111 @@
+#!/bin/sh
+# gsoi-detect — rilevamento delle capacità hardware del veicolo/dispositivo.
+#
+# GSOI deve girare su QUALSIASI auto: nulla è dato per scontato. Al boot questo
+# script sonda cosa è realmente collegato (schermi, bus CAN, telecamere, audio,
+# microfono, GPIO) e scrive le capacità in /run/gsoi/capabilities.env (letto dai
+# servizi via EnvironmentFile) e in .json (per le UI). I servizi e le UI leggono
+# queste capacità e si attivano solo dove ha senso: niente 2° schermo -> niente
+# quadro; niente CAN -> nessun dato veicolo finto (mock solo in emulazione).
+#
+# POSIX sh (busybox-compatibile). Nessun set -e: i glob che non matchano sono
+# gestiti con i test [ -e ].
+
+OUT_DIR=/run/gsoi
+ENVF="$OUT_DIR/capabilities.env"
+JSONF="$OUT_DIR/capabilities.json"
+mkdir -p "$OUT_DIR"
+
+# --- Schermi: connettori DRM "connected" -----------------------------------
+conns=""; disp=0
+for s in /sys/class/drm/card*-*/status; do
+    [ -f "$s" ] || continue
+    [ "$(cat "$s" 2>/dev/null)" = connected ] || continue
+    dir=$(dirname "$s"); name=$(basename "$dir"); name=${name#card*-}
+    conns="$conns $name"; disp=$((disp + 1))
+done
+conns=$(echo $conns)
+
+# --- Bus CAN (SocketCAN) ----------------------------------------------------
+canif=""; can=0
+for n in /sys/class/net/can* /sys/class/net/vcan*; do
+    [ -e "$n" ] || continue
+    canif="$canif $(basename "$n")"; can=1
+done
+canif=$(echo $canif)
+
+# --- Telecamere V4L2 --------------------------------------------------------
+vdev=""; cam=0
+for v in /dev/video*; do
+    [ -e "$v" ] || continue
+    vdev="$vdev $v"; cam=1
+done
+vdev=$(echo $vdev)
+
+# --- Audio (ALSA) -----------------------------------------------------------
+aud=0
+if [ -r /proc/asound/cards ] && grep -q '[0-9]' /proc/asound/cards 2>/dev/null; then
+    aud=1
+fi
+
+# --- Microfono (dispositivi di cattura ALSA) --------------------------------
+mic=0
+for c in /dev/snd/pcmC*c*; do
+    [ -e "$c" ] || continue
+    mic=1; break
+done
+
+# --- GPIO (gpiochip) --------------------------------------------------------
+gpio=0
+for g in /dev/gpiochip*; do
+    [ -e "$g" ] || continue
+    gpio=1; break
+done
+
+# --- Ambiente: bare-metal o emulazione --------------------------------------
+virt=none
+if command -v systemd-detect-virt >/dev/null 2>&1; then
+    virt=$(systemd-detect-virt 2>/dev/null) || virt=none
+    [ -n "$virt" ] || virt=none
+fi
+
+# --- Derivato: mock del veicolo SOLO senza CAN e in emulazione (dev/QEMU) ---
+# In un'auto vera senza la nostra interfaccia CAN NON si mostrano dati finti.
+vmock=0
+if [ "$can" -eq 0 ] && [ "$virt" != none ]; then
+    vmock=1
+fi
+
+# --- Scrittura capabilities.env (per i servizi) -----------------------------
+{
+    echo "GSOI_DISPLAYS=$disp"
+    echo "GSOI_DISPLAY_CONNECTORS=\"$conns\""
+    echo "GSOI_CAN=$can"
+    echo "GSOI_CAN_IFACES=\"$canif\""
+    echo "GSOI_CAMERA=$cam"
+    echo "GSOI_VIDEO_DEVS=\"$vdev\""
+    echo "GSOI_AUDIO=$aud"
+    echo "GSOI_MIC=$mic"
+    echo "GSOI_GPIO=$gpio"
+    echo "GSOI_VIRT=$virt"
+    echo "GSOI_VEHICLE_MOCK=$vmock"
+} > "$ENVF"
+
+# --- Scrittura capabilities.json (per le UI) --------------------------------
+cat > "$JSONF" <<EOF
+{
+  "displays": $disp,
+  "connectors": "$conns",
+  "can": $can,
+  "can_ifaces": "$canif",
+  "camera": $cam,
+  "video_devs": "$vdev",
+  "audio": $aud,
+  "mic": $mic,
+  "gpio": $gpio,
+  "virt": "$virt",
+  "vehicle_mock": $vmock
+}
+EOF
+
+echo "gsoi-detect: displays=$disp can=$can camera=$cam audio=$aud mic=$mic gpio=$gpio virt=$virt vehicle_mock=$vmock"

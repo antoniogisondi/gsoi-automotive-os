@@ -1,0 +1,14 @@
+[Unit]
+Description=GSOI — rilevamento capacità hardware (schermi, CAN, camera, audio…)
+Documentation=https://github.com/antoniogisondi/gsoi-automotive-os
+# Deve girare prima dei servizi/UI che leggono le capacità.
+After=local-fs.target systemd-udev-settle.service
+Before=weston.service gsoi-vehicled.service gsoi-reverse.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/gsoi-detect
+
+[Install]
+WantedBy=multi-user.target

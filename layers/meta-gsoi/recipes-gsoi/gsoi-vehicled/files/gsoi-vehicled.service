@@ -1,16 +1,20 @@
 [Unit]
 Description=GSOI Vehicle Data — quadro strumenti (CAN sola lettura, indipendente dall'AI)
 Documentation=https://github.com/antoniogisondi/gsoi-automotive-os
-After=multi-user.target
+# Dopo il rilevamento capacità: usa il CAN rilevato e il flag mock.
+After=multi-user.target gsoi-detect.service
+Wants=gsoi-detect.service
 
 [Service]
 Type=simple
+# Capacità rilevate (GSOI_CAN_IFACES, GSOI_VEHICLE_MOCK). "-" = non obbligatorio.
+EnvironmentFile=-/run/gsoi/capabilities.env
 ExecStart=/usr/bin/gsoi-vehicled
 # Strumentazione di guida: deve restare sempre attiva.
 Restart=always
 RestartSec=2
 
-# In auto: decommenta e imposta l'interfaccia SocketCAN del bus veicolo.
+# Override manuale dell'interfaccia CAN (altrimenti si usa quella rilevata).
 # La lettura è SOLA LETTURA (nessuna trasmissione sul bus).
 # Environment=GSOI_VEHICLE_CAN=can0
 

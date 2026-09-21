@@ -17,14 +17,21 @@ http://127.0.0.1:8093/vehicle per l'app `gsoi-cluster`.
                        "airbag": false, "seatbelt": false }
     }
 
-Sorgente CAN (opzionale), via variabili d'ambiente:
-    GSOI_VEHICLE_CAN     interfaccia SocketCAN (es. "can0"). Se assente -> mock.
+Sorgente CAN, via variabili d'ambiente (le imposta anche gsoi-detect):
+    GSOI_VEHICLE_CAN     interfaccia SocketCAN esplicita (es. "can0").
+    GSOI_CAN_IFACES      interfacce CAN rilevate (gsoi-detect); si usa la prima.
+    GSOI_VEHICLE_MOCK    "1" abilita il mock (lo attiva gsoi-detect in emulazione).
 
 SOLA LETTURA: il socket CAN viene solo ascoltato, non si trasmette nulla. La
 decodifica dei frame (ID specifici del veicolo, es. Renault Clio IV) è un hook
-`decode_frame`: va completata sull'hardware con la mappa CAN reale. Finché non
-c'è una sorgente CAN configurata, il servizio gira in MOCK e anima valori
-dimostrativi, così il quadro è visibile e rifinibile anche in QEMU.
+`decode_frame`: va completata sull'hardware con la mappa CAN reale.
+
+Comportamento (per girare su qualsiasi auto):
+  - CAN presente          -> dati reali.
+  - niente CAN, mock ON    -> mock animato (dev/QEMU: valori dimostrativi).
+  - niente CAN, mock OFF   -> NESSUN dato finto (online=false): il quadro mostra
+                              "no CAN". Così su un'auto senza la nostra
+                              interfaccia non si vedono lancette inventate.
 """
 
 import json
@@ -164,8 +171,16 @@ class MockVehicle:
 
 
 # --- Loop di acquisizione ---------------------------------------------------
+def _detected_can():
+    """Prima interfaccia CAN rilevata da gsoi-detect (GSOI_CAN_IFACES)."""
+    ifaces = os.environ.get("GSOI_CAN_IFACES", "").split()
+    return ifaces[0] if ifaces else None
+
+
 def reader_loop():
-    ifname = os.environ.get("GSOI_VEHICLE_CAN")
+    # CAN esplicito, altrimenti quello rilevato da gsoi-detect: su un'auto con
+    # la nostra interfaccia CAN attiva, zero configurazione.
+    ifname = os.environ.get("GSOI_VEHICLE_CAN") or _detected_can()
     if ifname:
         try:
             can = CanVehicle(ifname)
@@ -173,13 +188,22 @@ def reader_loop():
             can.loop()
             return
         except Exception as exc:
-            print(f"gsoi-vehicled: CAN non disponibile ({exc}); passo al mock.")
+            print(f"gsoi-vehicled: CAN '{ifname}' non disponibile ({exc}).")
 
-    print("gsoi-vehicled: nessun CAN configurato -> mock animato.")
-    mock = MockVehicle()
+    # Mock SOLO se abilitato (lo attiva gsoi-detect in emulazione, per QEMU).
+    if os.environ.get("GSOI_VEHICLE_MOCK", "0") == "1":
+        print("gsoi-vehicled: nessun CAN -> mock animato (ambiente di sviluppo).")
+        mock = MockVehicle()
+        while True:
+            mock.step()
+            time.sleep(0.05)  # 20 Hz
+
+    # Produzione senza CAN: NESSUN dato finto. online=false, valori a zero;
+    # il quadro mostra "no CAN" invece di lancette inventate.
+    print("gsoi-vehicled: nessun CAN e mock disabilitato -> nessun dato veicolo.")
+    _publish(_blank_state())
     while True:
-        mock.step()
-        time.sleep(0.05)  # 20 Hz
+        time.sleep(1.0)
 
 
 # --- HTTP -------------------------------------------------------------------

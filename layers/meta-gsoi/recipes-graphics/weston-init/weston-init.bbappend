@@ -57,6 +57,8 @@ if [ -r /etc/gsoi/ui-mode ]; then
     mode=$(cat /etc/gsoi/ui-mode 2>/dev/null | tr -d ' \t\r\n')
 fi
 
+# Numero di schermi: preferisci le capacità rilevate da gsoi-detect, con
+# fallback a una scansione diretta dei connettori HDMI.
 hdmi_connected() {
     n=0
     for s in /sys/class/drm/card*-HDMI-*/status; do
@@ -67,6 +69,13 @@ hdmi_connected() {
     done
     echo "$n"
 }
+
+displays=""
+if [ -r /run/gsoi/capabilities.env ]; then
+    . /run/gsoi/capabilities.env 2>/dev/null
+    displays="$GSOI_DISPLAYS"
+fi
+[ -n "$displays" ] || displays=$(hdmi_connected)
 
 case "$mode" in
     cluster)
@@ -79,8 +88,8 @@ case "$mode" in
         /usr/bin/gsoi-cluster-launch &
         exec /usr/bin/gsoi-cockpit-launch
         ;;
-    *)  # auto: cluster solo se c'e' una 2a uscita HDMI collegata
-        if [ "$(hdmi_connected)" -ge 2 ]; then
+    *)  # auto: quadro solo se c'e' un 2o schermo collegato
+        if [ "$displays" -ge 2 ] 2>/dev/null; then
             /usr/bin/gsoi-cluster-launch &
         fi
         exec /usr/bin/gsoi-cockpit-launch
