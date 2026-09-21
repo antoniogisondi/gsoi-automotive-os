@@ -29,8 +29,14 @@ IMAGE_INSTALL:append = " \
 
 IMAGE_FEATURES += "ssh-server-openssh"
 
-# Splash di boot (psplash con logo GSOI) al posto del testo del kernel.
+# Splash di boot (psplash con lo splash GSOI) al posto del testo del kernel.
 IMAGE_FEATURES += "splash"
+
+# Boot pulito: silenzia i messaggi del kernel a schermo (niente testo che
+# scorre prima dello splash) e nasconde il cursore lampeggiante.
+# In QEMU l'APPEND finisce nella cmdline via runqemu; sul Raspberry Pi 5 va
+# invece messo in CMDLINE (bootloader), es. CMDLINE:append = " quiet loglevel=3".
+APPEND:append = " quiet loglevel=3 vt.global_cursor_default=0"
 
 # Kiosk: nessun getty sulle VT grafiche (Weston possiede lo schermo).
 # NB: NON si maschera getty@tty1 con /dev/null: 'systemctl preset-all'
