@@ -31,15 +31,9 @@ shell=kiosk-shell.so
 require-input=false
 xwayland=false
 
-# Assegnazione app -> uscita HDMI (kiosk-shell). Su hardware senza queste
-# uscite (es. QEMU) le voci vengono ignorate e l'app va sull'unico schermo.
-[output]
-name=HDMI-A-1
-app-ids=org.gsoi.cockpit
-
-[output]
-name=HDMI-A-2
-app-ids=org.gsoi.cluster
+# NB: l'assegnazione app->uscita HDMI (kiosk-shell [output] app-ids) e' un
+# concetto SOLO per il Pi con due HDMI. In QEMU l'unica uscita e' "Virtual-1":
+# mappare le app a HDMI-A-1/2 le lascerebbe senza schermo. Si riattiva sul Pi.
 
 [autolaunch]
 # Avvia le UI GSOI (cockpit sempre; cluster sul 2o schermo se collegato).
