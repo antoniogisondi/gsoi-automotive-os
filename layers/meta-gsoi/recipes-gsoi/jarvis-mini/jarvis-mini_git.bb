@@ -19,9 +19,9 @@ SRC_URI = "git://github.com/antoniogisondi/gsoi-jarvis-mini.git;protocol=https;b
 GSOI_JARVIS_MINI_BRANCH ?= "main"
 # Include il backend del modello LLM locale (cervello a bordo, JARVIS_AI=local)
 # e la pipeline di fine-tuning in finetune/ (non pacchettizzata).
-SRCREV = "0cf9aa5352424302a7a0f0fcbc069525862279eb"
+SRCREV = "5d897fb81bb0103e8facd740ca2192d3240259f2"
 
-PV = "0.2.0+git"
+PV = "0.3.0+git"
 # Nota: non impostare S = "${WORKDIR}/git": in questa release di OE-Core
 # bitbake.conf lo gia' correttamente per i sorgenti git.
 

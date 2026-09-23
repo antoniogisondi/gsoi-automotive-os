@@ -27,9 +27,12 @@ if [ -z "${MODEL_FILE}" ]; then
 fi
 
 # 1) llama.cpp server: espone gia' /v1/chat/completions (OpenAI-compatible).
+# --jinja: usa il chat template del modello (per Qwen3 e' ESSENZIALE, altrimenti
+#   il modello emette token grezzi come <tool_call>/<think> invece di rispondere)
+#   e abilita chat_template_kwargs (es. enable_thinking=false lato client).
 if command -v llama-server >/dev/null 2>&1; then
     log "avvio llama-server con ${MODEL_FILE} su ${HOST}:${PORT}"
-    exec llama-server -m "${MODEL_FILE}" --host "${HOST}" --port "${PORT}" -c 4096
+    exec llama-server -m "${MODEL_FILE}" --host "${HOST}" --port "${PORT}" -c 4096 --jinja
 fi
 
 # 2) Ollama (alternativa): serve su :11434 — adegua JARVIS_MODEL_URL.
