@@ -13,11 +13,11 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7ca
 # URL pinnato alla revisione del commit (non a 'main') per build riproducibili.
 # Per aggiornare il modello: nuovo upload su HF, poi aggiorna la revisione
 # nell'URL e lo SHA256 qui sotto.
-SRC_URI = "https://huggingface.co/gsoi/gsoi-qwen3-4b-gguf/resolve/fb67caf9503a9f1e9818f167b41b8829c08fab45/qwen3-4b-instruct-2507.Q4_K_M.gguf;downloadfilename=gsoi-qwen3-4b-q4_k_m.gguf"
-SRC_URI[sha256sum] = "889bc6b2fb22ea2526343ae65610f61c6591da4cf161ce9812535743bcfc8299"
+SRC_URI = "https://huggingface.co/gsoi/gsoi-qwen3-4b-gguf/resolve/06389bcae8755554fbc10652d46988400401016b/qwen3-4b-instruct-2507.Q4_K_M.gguf;downloadfilename=gsoi-qwen3-4b-q4_k_m.gguf"
+SRC_URI[sha256sum] = "030ff5470c9ae5e6fe2db27e25f9032fc55728dcf9b203cdd1374e475ed5378d"
 
 
-PV = "0.1"
+PV = "0.2"
 
 # Solo dati (nessuna compilazione, nessuna dipendenza d'architettura).
 inherit allarch
