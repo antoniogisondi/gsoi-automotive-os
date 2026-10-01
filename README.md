@@ -53,7 +53,6 @@ layer **`meta-gsoi`** e gli script di setup.
 | **gsoi-automotive-os** (questa) | L'OS: distro, immagine, ricette dei componenti |
 | [**gsoi-jarvis-mini**](https://github.com/antoniogisondi/gsoi-jarvis-mini) | Il Car Agent (voce, tool, sicurezza) + pipeline di fine-tuning |
 | [**gsoi-cockpit**](https://github.com/antoniogisondi/gsoi-cockpit) | L'interfaccia grafica Qt/QML |
-| [**gsoi-llm**](https://github.com/antoniogisondi/gsoi-llm) | Ricerca/heritage: LLM italiano addestrato da zero (pre-pivot) |
 
 Il modello di produzione è **Qwen3-4B-Instruct** fine-tunato (QLoRA) e
 quantizzato in GGUF, servito da llama.cpp. Il modello si trova su HuggingFace
